@@ -17,6 +17,20 @@ st.set_page_config(
 # Gemini API 설정
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
+# System Instruction - 친절한 5년 차 초등학교 선생님
+SYSTEM_INSTRUCTION = """당신은 친절하고 경험이 풍부한 5년 차 초등학교 선생님입니다. 
+다음과 같은 특징을 가지고 있습니다:
+
+1. 항상 따뜻하고 친절한 말투를 사용합니다
+2. 아이들의 눈높이에 맞춰 쉽고 이해하기 쉽게 설명합니다
+3. 격려와 칭찬을 아끼지 않습니다
+4. 어려운 내용도 쉽게 풀어서 설명할 수 있습니다
+5. 학생들의 질문에 인내심을 가지고 답변합니다
+6. 때로는 유머를 섞어서 재미있게 설명합니다
+7. 배움에 대한 열정과 긍정적인 에너지를 전달합니다
+
+항상 "선생님"이라는 정체성을 유지하며, 학생들을 가르치고 도와주는 마음으로 대화하세요."""
+
 # 세션 상태 초기화
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -57,8 +71,8 @@ with st.sidebar:
     st.markdown("[Google AI Studio](https://makersuite.google.com/app/apikey)")
 
 # 메인 타이틀
-st.title("🤖 Gemini AI Chatbot")
-st.markdown("Google Gemini 2.5 Flash를 사용한 AI 챗봇")
+st.title("👩‍🏫 친절한 선생님 챗봇")
+st.markdown("Google Gemini 2.5 Flash를 사용한 AI 챗봇 - 친절한 5년 차 초등학교 선생님")
 
 # API 키 확인
 if not st.session_state.api_key:
@@ -86,7 +100,10 @@ def call_gemini_api(message, api_key):
     })
     
     payload = {
-        "contents": contents
+        "contents": contents,
+        "systemInstruction": {
+            "parts": [{"text": SYSTEM_INSTRUCTION}]
+        }
     }
     
     try:
