@@ -49,57 +49,6 @@
             font-size: 0.9rem;
         }
 
-        .api-key-container {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 1rem;
-            margin: 1rem auto;
-            max-width: 900px;
-            border-radius: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-        }
-
-        .api-key-container input {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 0.5rem;
-            padding: 0.75rem;
-            color: white;
-            font-size: 0.9rem;
-            outline: none;
-        }
-
-        .api-key-container input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .api-key-container button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
-
-        .api-key-container button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .api-key-saved {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 0.85rem;
-            padding: 0 0.5rem;
-        }
-
         .chat-container {
             flex: 1;
             display: flex;
@@ -299,10 +248,6 @@
             border: 1px solid rgba(255, 0, 0, 0.3);
         }
 
-        .hidden {
-            display: none;
-        }
-
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.5rem;
@@ -319,28 +264,13 @@
             .send-button {
                 padding: 0.75rem 1.5rem;
             }
-
-            .api-key-container {
-                flex-direction: column;
-                align-items: stretch;
-            }
         }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🤖 Gemini AI Chatbot</h1>
-        <p>Google Gemini 2.5 Flash API를 사용한 AI 챗봇</p>
-    </div>
-
-    <div class="api-key-container" id="apiKeyContainer">
-        <input 
-            type="password" 
-            id="apiKeyInput" 
-            placeholder="Google API 키를 입력하세요 (한 번만 입력하면 저장됩니다)"
-        />
-        <button id="saveApiKeyButton">저장</button>
-        <span class="api-key-saved hidden" id="apiKeySaved">✓ API 키가 저장되었습니다</span>
+        <p>Google Gemini API를 사용한 AI 챗봇</p>
     </div>
 
     <div class="chat-container">
@@ -352,9 +282,8 @@
                 class="chat-input" 
                 placeholder="메시지를 입력하세요..."
                 rows="1"
-                disabled
             ></textarea>
-            <button id="sendButton" class="send-button" disabled>전송</button>
+            <button id="sendButton" class="send-button">전송</button>
         </div>
     </div>
 
@@ -362,87 +291,8 @@
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const saveApiKeyButton = document.getElementById('saveApiKeyButton');
-        const apiKeySaved = document.getElementById('apiKeySaved');
-        const apiKeyContainer = document.getElementById('apiKeyContainer');
 
-        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-        let apiKey = '';
         let chatHistory = [];
-
-        // 저장된 API 키 불러오기
-        function loadApiKey() {
-            const saved = localStorage.getItem('gemini_api_key');
-            if (saved) {
-                apiKey = saved;
-                apiKeyInput.value = '••••••••••••••••';
-                apiKeyInput.disabled = true;
-                apiKeySaved.classList.remove('hidden');
-                saveApiKeyButton.textContent = '변경';
-                enableChat();
-            }
-        }
-
-        // API 키 저장
-        function saveApiKey() {
-            const key = apiKeyInput.value.trim();
-            if (!key) {
-                alert('API 키를 입력해주세요.');
-                return;
-            }
-
-            apiKey = key;
-            localStorage.setItem('gemini_api_key', key);
-            apiKeyInput.value = '••••••••••••••••';
-            apiKeyInput.disabled = true;
-            apiKeySaved.classList.remove('hidden');
-            saveApiKeyButton.textContent = '변경';
-            enableChat();
-        }
-
-        // API 키 변경
-        function changeApiKey() {
-            apiKey = '';
-            localStorage.removeItem('gemini_api_key');
-            apiKeyInput.value = '';
-            apiKeyInput.disabled = false;
-            apiKeyInput.type = 'password';
-            apiKeyInput.focus();
-            apiKeySaved.classList.add('hidden');
-            saveApiKeyButton.textContent = '저장';
-            disableChat();
-        }
-
-        // 채팅 활성화
-        function enableChat() {
-            chatInput.disabled = false;
-            sendButton.disabled = false;
-            chatInput.placeholder = '메시지를 입력하세요...';
-        }
-
-        // 채팅 비활성화
-        function disableChat() {
-            chatInput.disabled = true;
-            sendButton.disabled = true;
-            chatInput.placeholder = '먼저 API 키를 입력해주세요...';
-        }
-
-        // API 키 저장 버튼 이벤트
-        saveApiKeyButton.addEventListener('click', () => {
-            if (saveApiKeyButton.textContent === '변경') {
-                changeApiKey();
-            } else {
-                saveApiKey();
-            }
-        });
-
-        // Enter 키로 API 키 저장
-        apiKeyInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !apiKeyInput.disabled) {
-                saveApiKey();
-            }
-        });
 
         // 텍스트 영역 자동 높이 조절
         chatInput.addEventListener('input', function() {
@@ -461,52 +311,10 @@
         // 전송 버튼 클릭
         sendButton.addEventListener('click', sendMessage);
 
-        // Gemini API 호출
-        async function callGeminiAPI(message) {
-            const url = `${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`;
-
-            // 대화 히스토리 구성
-            const contents = chatHistory.map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.content }]
-            }));
-
-            // 현재 메시지 추가
-            contents.push({
-                role: 'user',
-                parts: [{ text: message }]
-            });
-
-            const requestBody = {
-                contents: contents
-            };
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                return data.candidates[0].content.parts[0].text;
-            } else {
-                throw new Error('Invalid response from API');
-            }
-        }
-
         async function sendMessage() {
             const message = chatInput.value.trim();
             
-            if (!message || !apiKey) return;
+            if (!message) return;
 
             // 입력 필드 비우기
             chatInput.value = '';
@@ -523,14 +331,29 @@
             sendButton.disabled = true;
 
             try {
-                const response = await callGeminiAPI(message);
-                
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: chatHistory.slice(0, -1) // 현재 메시지 제외
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to get response');
+                }
+
                 // 로딩 메시지 제거
                 removeMessage(loadingId);
 
                 // 봇 응답 표시
-                addMessage('bot', response);
-                chatHistory.push({ role: 'assistant', content: response });
+                addMessage('bot', data.response);
+                chatHistory.push({ role: 'assistant', content: data.response });
 
             } catch (error) {
                 console.error('Error:', error);
@@ -539,12 +362,7 @@
                 removeMessage(loadingId);
 
                 // 에러 메시지 표시
-                let errorMsg = `죄송합니다. 오류가 발생했습니다: ${error.message}`;
-                if (error.message.includes('API_KEY_INVALID') || error.message.includes('401')) {
-                    errorMsg = 'API 키가 유효하지 않습니다. API 키를 확인해주세요.';
-                    changeApiKey();
-                }
-                addMessage('bot', errorMsg);
+                addMessage('bot', `죄송합니다. 오류가 발생했습니다: ${error.message}`);
             } finally {
                 sendButton.disabled = false;
                 chatInput.focus();
@@ -569,6 +387,8 @@
                 messageContent.innerHTML = '<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>';
             } else {
                 // 마크다운 스타일 간단 처리
+                messageContent.textContent = content;
+                // 코드 블록 처리 (간단한 버전)
                 messageContent.innerHTML = formatMessage(content);
             }
 
@@ -594,23 +414,18 @@
             return text
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`([^`]+)`/g, '<code>$1</code>')
-                .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
                 .replace(/\n/g, '<br>');
         }
 
-        // 초기화
+        // 초기 환영 메시지
         window.addEventListener('load', () => {
-            loadApiKey();
-            if (!apiKey) {
-                apiKeyInput.focus();
-            } else {
-                setTimeout(() => {
-                    addMessage('bot', '안녕하세요! 저는 Google Gemini AI 챗봇입니다. 무엇을 도와드릴까요?');
-                }, 500);
-                chatInput.focus();
-            }
+            setTimeout(() => {
+                addMessage('bot', '안녕하세요! 저는 Google Gemini AI 챗봇입니다. 무엇을 도와드릴까요?');
+            }, 500);
+            chatInput.focus();
         });
     </script>
 </body>
 </html>
+
