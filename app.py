@@ -53,8 +53,8 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "obs_shadow_length",
-            "stage": "도입 · 관찰",
-            "label": "도입-관찰: 그림자 길이",
+            "stage": "관찰",
+            "label": "관찰: 그림자 길이",
             "question": "여름과 겨울에 같은 시간에 서 있으면, 그림자 길이는 어떻게 달라질까요?",
             "expected_answers": [
                 "여름에는 그림자가 짧고, 겨울에는 그림자가 길어요.",
@@ -81,8 +81,8 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "obs_day_length",
-            "stage": "도입 · 관찰",
-            "label": "도입-관찰: 낮의 길이",
+            "stage": "관찰",
+            "label": "관찰: 낮의 길이",
             "question": "낮의 길이는 계절에 따라 어떻게 달라질까요?",
             "expected_answers": [
                 "여름에는 낮이 길고 밤이 짧아요.",
@@ -109,8 +109,8 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "reason_sunlight",
-            "stage": "전개 · 추론",
-            "label": "전개-추론: 햇빛이 더 강하게 느껴지는 까닭",
+            "stage": "추론",
+            "label": "추론: 햇빛이 더 강하게 느껴지는 까닭",
             "question": "왜 여름에는 햇빛이 더 강하게 느껴질까요?",
             "expected_answers": [
                 "여름에는 태양이 높이 떠 있어서 햇빛이 더 세게 내려와요.",
@@ -137,8 +137,8 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "reason_oblique",
-            "stage": "전개 · 추론",
-            "label": "전개-추론: 비스듬한 햇빛",
+            "stage": "추론",
+            "label": "추론: 비스듬한 햇빛",
             "question": "햇빛이 비스듬히 들어오면 어떤 일이 생길까요?",
             "expected_answers": [
                 "빛이 넓게 퍼져서 한 곳에 도달하는 양이 줄어들 것 같아요.",
@@ -165,8 +165,8 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "misconception_distance",
-            "stage": "전개 · 검증",
-            "label": "전개-검증: 거리 오개념 확인",
+            "stage": "검증",
+            "label": "검증: 거리 오개념 확인",
             "question": "계절은 지구가 태양에 가까워져서 또는 멀어져서 생긴다고 말해도 될까요?",
             "expected_answers": [
                 "가까워서 덥고, 멀어서 추운 거라고 생각했어요.",
@@ -192,8 +192,8 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "elab_tilt",
-            "stage": "전개 · 정교화",
-            "label": "전개-정교화: 자전축 기울기 의미",
+            "stage": "정교화",
+            "label": "정교화: 자전축 기울기 의미",
             "question": "‘지구의 자전축이 기울어져 있다’는 말은 어떤 뜻일까요?",
             "expected_answers": [
                 "지구가 세워져서 도는 게 아니라 약간 기울어진 채로 돌고 있어요.",
@@ -219,8 +219,8 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "summary_sentence",
-            "stage": "정리",
-            "label": "정리: 한 문장으로 계절 설명",
+            "stage": "재구성",
+            "label": "재구성: 한 문장으로 계절 설명",
             "question": "계절이 생기는 까닭을 한 문장으로 말해 볼까요?",
             "expected_answers": [
                 "지구의 자전축이 기울어진 채로 태양 주위를 공전하기 때문에 계절이 생겨요.",
@@ -374,6 +374,9 @@ if "resource_urls" not in st.session_state:
     # card_id -> resource_id -> url
     st.session_state.resource_urls = {}
 
+if "selected_card_index" not in st.session_state:
+    st.session_state.selected_card_index = 0
+
 
 def get_cards() -> List[Dict]:
     return st.session_state.cards
@@ -404,9 +407,17 @@ with st.sidebar:
 
     # 카드 선택
     cards = get_cards()
-    options = {f"[{c['stage']}] {c['label']}": c["id"] for c in cards}
-    selected_label = st.selectbox("사용할 발문 카드를 선택하세요.", list(options.keys()))
-    selected_card_id = options[selected_label]
+    options = [f"[{c['stage']}] {c['label']}" for c in cards]
+    selected_index = st.session_state.get("selected_card_index", 0)
+    selected_label = st.selectbox(
+        "사용할 발문 카드를 선택하세요.",
+        options,
+        index=selected_index,
+        key="card_select",
+    )
+    # 선택된 인덱스를 세션에 반영
+    st.session_state.selected_card_index = options.index(selected_label)
+    selected_card_id = cards[st.session_state.selected_card_index]["id"]
 
     st.markdown("---")
     st.subheader("📎 자료 링크 설정")
@@ -437,7 +448,9 @@ tab_lesson, tab_summary = st.tabs(["발문 카드 활용", "한 장 정리"])
 # 탭 1: 발문 카드 활용
 # -----------------------------
 with tab_lesson:
-    card = current_card
+    cards = get_cards()
+    current_index = st.session_state.get("selected_card_index", 0)
+    card = cards[current_index]
 
     st.markdown(f"#### 단계: {card['stage']}")
     st.markdown(f"**{card['question']}**")
@@ -450,11 +463,13 @@ with tab_lesson:
         placeholder="예) 여름에는 태양이 가까워져서 더워지고, 겨울에는 멀어져서 추워진 것 같아요.",
     )
 
-    col_fb, col_res = st.columns(2)
+    col_fb, col_res, col_next = st.columns([1, 1, 1])
     with col_fb:
         show_feedback = st.button("피드백 보기", key=f"fb_btn_{card['id']}")
     with col_res:
         show_resources = st.button("추가 자료 보기", key=f"res_btn_{card['id']}")
+    with col_next:
+        next_step = st.button("다음 단계로 넘어가기", key=f"next_btn_{card['id']}")
 
     # 피드백 영역
     if show_feedback:
@@ -487,6 +502,14 @@ with tab_lesson:
                 else:
                     st.info("URL이 비어 있습니다. 사이드바에서 주소를 입력해 주세요.")
                 st.markdown("---")
+
+    # 다음 단계로 이동
+    if next_step:
+        next_index = (current_index + 1) % len(cards)
+        st.session_state.selected_card_index = next_index
+        import streamlit as _st  # 지역 import로 순환 참조 방지
+
+        _st.rerun()
 
 
 # -----------------------------
