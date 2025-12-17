@@ -408,14 +408,19 @@ with st.sidebar:
     # 카드 선택
     cards = get_cards()
     options = [f"[{c['stage']}] {c['label']}" for c in cards]
-    selected_index = st.session_state.get("selected_card_index", 0)
+    # 현재 선택 인덱스를 문자열 상태와 동기화
+    if "card_select" not in st.session_state:
+        st.session_state.card_select = options[st.session_state.selected_card_index]
+    else:
+        # next-step에서 인덱스를 바꾼 경우 selectbox와 동기화
+        st.session_state.card_select = options[st.session_state.selected_card_index]
+
     selected_label = st.selectbox(
         "사용할 발문 카드를 선택하세요.",
         options,
-        index=selected_index,
         key="card_select",
     )
-    # 선택된 인덱스를 세션에 반영
+    # 사용자가 드롭다운으로 바꾼 경우 인덱스도 갱신
     st.session_state.selected_card_index = options.index(selected_label)
     selected_card_id = cards[st.session_state.selected_card_index]["id"]
 
