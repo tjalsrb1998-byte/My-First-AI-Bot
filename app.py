@@ -540,7 +540,6 @@ with tab_summary:
     st.checkbox("자전축 기울기와 공전이 계절과 어떻게 연결되는지 한 문장으로 말할 수 있다.", key="chk_tilt_orbit")
 
     st.markdown("---")
-    st.markdown(
-        """
+
 
 
