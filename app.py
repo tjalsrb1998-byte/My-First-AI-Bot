@@ -18,9 +18,9 @@ def get_default_cards() -> List[Dict]:
     return [
         {
             "id": "obs_sun_appearance",
-            "stage": "도입 · 관찰",
-            "label": "도입-관찰: 태양이 비치는 모습",
-            "question": "여름과 겨울에 태양이 비치는 모습은 어떻게 다를까요?",
+            "stage": "생각해보기",
+            "label": "생각해보기: 계절 변화의 까닭",
+            "question": "계절의 변화가 생기는 까닭은 무엇일까요?",
             "expected_answers": [
                 "여름에는 태양이 더 높이 떠 있고, 겨울에는 낮게 떠요.",
                 "여름에는 햇빛이 강고 눈이 부시고, 겨울에는 햇빛이 약하게 느껴져요.",
@@ -408,9 +408,6 @@ with st.sidebar:
     selected_label = st.selectbox("사용할 발문 카드를 선택하세요.", list(options.keys()))
     selected_card_id = options[selected_label]
 
-    # 교사용 모드
-    teacher_mode = st.toggle("교사용 모드 보기", value=True)
-
     st.markdown("---")
     st.subheader("📎 자료 링크 설정")
     st.caption("학교에서 사용 가능한 이미지/영상 URL로 바꾸어 사용하실 수 있습니다.")
@@ -443,8 +440,7 @@ with tab_lesson:
     card = current_card
 
     st.markdown(f"#### 단계: {card['stage']}")
-    st.markdown(f"**발문**")
-    st.markdown(f"👉 **{card['question']}**")
+    st.markdown(f"**{card['question']}**")
 
     st.markdown("##### 학생 답 입력")
     answer = st.text_area(
@@ -491,29 +487,6 @@ with tab_lesson:
                 else:
                     st.info("URL이 비어 있습니다. 사이드바에서 주소를 입력해 주세요.")
                 st.markdown("---")
-
-    # 교사용 모드
-    if teacher_mode:
-        st.markdown("---")
-        st.subheader("👩‍🏫 교사용 안내")
-
-        exp = card.get("expected_answers", [])
-        if exp:
-            st.markdown("**예상 학생 반응 예시 (2~3개)**")
-            for i, e in enumerate(exp, start=1):
-                st.markdown(f"- ({i}) {e}")
-
-        notes = card.get("teacher_notes", {})
-        extra_q = notes.get("extra_questions", [])
-        if extra_q:
-            st.markdown("**추가 발문 제안 (2개)**")
-            for q in extra_q[:2]:
-                st.markdown(f"- {q}")
-
-        point = notes.get("teacher_point")
-        if point:
-            st.markdown("**지도 포인트 (1개)**")
-            st.write(point)
 
 
 # -----------------------------
