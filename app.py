@@ -507,9 +507,7 @@ with tab_lesson:
     if next_step:
         next_index = (current_index + 1) % len(cards)
         st.session_state.selected_card_index = next_index
-        import streamlit as _st  # 지역 import로 순환 참조 방지
-
-        _st.rerun()
+        st.rerun()
 
 
 # -----------------------------
