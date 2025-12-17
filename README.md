@@ -1,4 +1,4 @@
-# My Streamlit App
+# 지구, 태양 주위를 떠도는 여정! 🌍
 
 Streamlit으로 만든 웹 애플리케이션입니다.
 
@@ -31,5 +31,3 @@ streamlit run app.py
 ## 개발
 
 앱을 수정하고 싶다면 `app.py` 파일을 편집하세요.
-
-

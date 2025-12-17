@@ -41,6 +41,3 @@ with col2:
 st.markdown("---")
 st.markdown("### 추가 기능")
 st.write("여기에 더 많은 기능을 추가할 수 있습니다")
-
-# 파일이 변경되었습니다 - Streamlit이 자동으로 리로드합니다
-
