@@ -36,6 +36,51 @@ def render_distance_feedback():
     )
 
 
+def render_auto_observe_block():
+    """① 관찰 발문 전용 블록 - 질문 → 학생 답 → 자동 피드백."""
+    st.subheader("① 관찰 발문")
+    st.caption("수업 도입에서, 학생들이 이미 알고 있다고 생각하는 내용을 편안하게 말해 보도록 돕는 단계입니다.")
+
+    # 메인 질문
+    st.markdown("**계절이 변하는 까닭은 무엇일까요?**")
+
+    answer = st.text_area(
+        "학생 대답 입력창",
+        key="observe_auto_answer",
+        height=80,
+        placeholder="학생이 실제로 말한 내용을 그대로 적어 두시면 좋습니다.",
+    )
+
+    if not answer:
+        st.info("학생이 대답한 내용을 적어 주시면, 바로 아래에 피드백 문장이 자동으로 제안됩니다.")
+        return
+
+    st.markdown("----")
+    st.markdown("#### 💬 자동 피드백 제안")
+
+    # 1) 학생 대답을 존중하는 문장
+    st.write(
+        f"\"{answer}\"라고 생각해 주었군요. 계절이 왜 바뀌는지 스스로 이유를 떠올려 본 점이 정말 훌륭합니다."
+    )
+
+    # 2) 과학적으로 보완해 주는 설명
+    st.write(
+        "계절이 변하는 가장 큰 까닭은 **지구의 자전축이 약 23.5도 기울어진 채로 태양 주위를 공전하기 때문**이에요."
+    )
+    st.write(
+        "이렇게 기울어진 지구가 공전하면서, 어떤 때에는 우리나라 쪽으로 태양빛이 더 정면에 가깝게 들어오고, "
+        "어떤 때에는 더 비스듬히 들어오게 됩니다."
+    )
+    st.write(
+        "그래서 같은 곳에서도 어떤 계절에는 햇빛이 강하고 낮이 길게 느껴지고, 다른 계절에는 햇빛이 약하고 밤이 길게 느껴지는 거예요."
+    )
+
+    # 3) 오개념(거리) 관련 추가 피드백
+    if has_distance_misconception(answer):
+        st.info("학생의 대답에 ‘거리’와 관련된 생각이 담겨 있는 것 같아요. 아래 내용을 함께 설명해 주세요.")
+        render_distance_feedback()
+
+
 def render_question_block(
     step_title: str,
     question: str,
@@ -136,34 +181,8 @@ with tab_qna:
     )
     st.markdown("---")
 
-    # ① 관찰 발문
-    render_question_block(
-        step_title="① 관찰 발문",
-        question="여름과 겨울을 떠올려 보면, 태양이 비치는 모습에는 어떤 차이가 있을까요?",
-        description="학생들이 스스로 여름/겨울의 태양 고도, 햇빛 느낌, 그림자 길이 등을 떠올리도록 도와주는 단계입니다.",
-        key_prefix="observe",
-        extra_feedback_lines=[
-            "계절에 따라 태양이 하늘에서 보이는 **높이와 위치가 달라진다는 점**을 함께 정리해 주세요.",
-            "예를 들어 여름에는 태양이 **더 높이 떠 있고**, 겨울에는 **좀 더 낮은 위치**에서 뜨고 진다는 것을 떠올리게 해 주면 좋습니다.",
-            "그림자 길이도 계절에 따라 달라진다는 점을 연결해 주면, 나중에 태양 고도 개념으로 이어지기 쉽습니다.",
-        ],
-        extra_materials=[
-            {
-                "title": "자전축 23.5도 기울기 이미지",
-                "description": "지구가 자전하는 축이 약 23.5도 기울어진 채로 태양 주위를 도는 모습을 보여 주세요.",
-                "type": "image",
-                "url": "https://example.com/earth-axis-tilt-23-5deg.png",
-                "caption": "지구의 자전축이 기울어진 모습 (예시 이미지 URL)",
-            },
-            {
-                "title": "여름/겨울 태양 고도 비교 그림",
-                "description": "같은 장소에서 여름과 겨울에 태양이 어느 높이까지 올라가는지 비교한 그림입니다.",
-                "type": "image",
-                "url": "https://example.com/sun-altitude-summer-winter.png",
-                "caption": "여름과 겨울의 태양 고도 차이 (예시 이미지 URL)",
-            },
-        ],
-    )
+    # ① 관찰 발문 - 자동 피드백 버전
+    render_auto_observe_block()
 
     st.markdown("---")
 
