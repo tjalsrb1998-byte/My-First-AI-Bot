@@ -3,6 +3,7 @@ from typing import Dict, List
 import json
 from pathlib import Path
 import re
+from urllib.parse import urlparse, parse_qs
 
 # -----------------------------
 # config.json 저장/불러오기
@@ -30,41 +31,62 @@ def save_resource_urls(resource_urls: Dict) -> None:
 
 
 # -----------------------------
-# 유튜브 링크 정규화(Shorts/공유 링크 대응)
+# 유튜브 링크 정규화(Shorts/공유 링크/모바일 링크 대응)
 # -----------------------------
+def extract_youtube_video_id(url: str) -> str:
+    """유튜브 URL에서 video_id를 최대한 robust하게 추출합니다."""
+    if not url:
+        return ""
+
+    u = url.strip()
+
+    # 1) youtu.be/<id>
+    m = re.search(r"youtu\.be/([A-Za-z0-9_-]{6,})", u)
+    if m:
+        return m.group(1)
+
+    # 2) youtube.com/shorts/<id>
+    m = re.search(r"(?:youtube\.com|m\.youtube\.com)/shorts/([A-Za-z0-9_-]{6,})", u)
+    if m:
+        return m.group(1)
+
+    # 3) youtube.com/embed/<id>
+    m = re.search(r"(?:youtube\.com|m\.youtube\.com)/embed/([A-Za-z0-9_-]{6,})", u)
+    if m:
+        return m.group(1)
+
+    # 4) youtube.com/watch?v=<id> (querystring)
+    try:
+        parsed = urlparse(u)
+        qs = parse_qs(parsed.query)
+        if "v" in qs and qs["v"]:
+            return qs["v"][0]
+    except Exception:
+        pass
+
+    # 5) 혹시나 watch?v=가 문자열에 포함된 경우(비정상 URL 대비)
+    m = re.search(r"v=([A-Za-z0-9_-]{6,})", u)
+    if m:
+        return m.group(1)
+
+    return ""
+
+
 def normalize_youtube_url(url: str) -> str:
     """
-    Streamlit st.video에서 잘 재생되도록 유튜브 URL을 embed 형태로 변환합니다.
-    - https://www.youtube.com/shorts/VIDEO_ID
-    - https://youtu.be/VIDEO_ID
-    - https://www.youtube.com/watch?v=VIDEO_ID
-    등을 모두 지원
+    Streamlit st.video에서 잘 재생되도록 유튜브 URL을 정규화합니다.
+    - st.video는 보통 watch URL도 잘 되지만,
+      shorts/공유링크/모바일 링크가 꼬이면 실패하는 경우가 있어 id 기반으로 정규화합니다.
     """
     if not url:
         return url
 
-    u = url.strip()
+    vid = extract_youtube_video_id(url)
+    if not vid:
+        return url.strip()
 
-    # youtu.be/<id>
-    m = re.search(r"youtu\.be/([A-Za-z0-9_-]{6,})", u)
-    if m:
-        vid = m.group(1)
-        return f"https://www.youtube.com/embed/{vid}"
-
-    # youtube.com/shorts/<id>
-    m = re.search(r"youtube\.com/shorts/([A-Za-z0-9_-]{6,})", u)
-    if m:
-        vid = m.group(1)
-        return f"https://www.youtube.com/embed/{vid}"
-
-    # youtube.com/watch?v=<id>
-    m = re.search(r"youtube\.com/watch\?v=([A-Za-z0-9_-]{6,})", u)
-    if m:
-        vid = m.group(1)
-        return f"https://www.youtube.com/embed/{vid}"
-
-    # youtube.com/embed/<id> 는 그대로
-    return u
+    # watch 형태로 정규화 (embed보다 watch가 st.video에서 더 안정적인 경우가 많습니다)
+    return f"https://www.youtube.com/watch?v={vid}"
 
 
 def is_youtube_url(url: str) -> bool:
@@ -173,7 +195,7 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "reason_sunlight",
-            "stage": "생각해보기",  # ✅ 오타 수정
+            "stage": "생각해보기",
             "label": "생각해보기: 햇빛이 더 강하게 느껴지는 까닭",
             "question": "왜 여름에는 햇빛이 더 강하게 느껴질까요?",
             "expected_answers": [
@@ -201,7 +223,7 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "reason_oblique",
-            "stage": "생각해보기",  # ✅ 오타 수정
+            "stage": "생각해보기",
             "label": "생각해보기: 비스듬한 햇빛",
             "question": "햇빛이 비스듬히 들어오면 어떤 일이 생길까요?",
             "expected_answers": [
@@ -256,7 +278,7 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "elab_tilt",
-            "stage": "더 생각해보기",  # ✅ 오타 수정
+            "stage": "더 생각해보기",
             "label": "더 생각해보기: 자전축 기울기 의미",
             "question": "‘지구의 자전축이 기울어져 있다’는 말은 어떤 뜻일까요?",
             "expected_answers": [
@@ -284,7 +306,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "summary_sentence",
             "stage": "정리",
-            "label": "정리: 한 문장으로 계절 설명",  # ✅ 오타 수정
+            "label": "정리: 한 문장으로 계절 설명",
             "question": "계절이 생기는 까닭을 한 문장으로 말해 볼까요?",
             "expected_answers": [
                 "지구의 자전축이 기울어진 채로 태양 주위를 공전하기 때문에 계절이 생겨요.",
@@ -423,12 +445,14 @@ with st.sidebar:
     st.header("⚙️ 수업 설정")
 
     cards = get_cards()
-    labels = [f"[{c['stage']}] {c['label']}" for c in cards]
+
+    # ✅ stage/label이 정확히 보이도록 표시 문자열을 명확히 구성
+    display_labels = [f"[{c.get('stage','')}] {c.get('label','')}" for c in cards]
 
     selected_index = st.selectbox(
         "사용할 발문 카드를 선택하세요.",
-        options=list(range(len(labels))),
-        format_func=lambda i: labels[i],
+        options=list(range(len(display_labels))),
+        format_func=lambda i: display_labels[i],
         index=st.session_state.selected_card_index,
     )
     st.session_state.selected_card_index = selected_index
@@ -483,20 +507,22 @@ with tab_lesson:
     st.markdown(f"**{card['question']}**")
 
     st.markdown("##### 학생 답 입력")
+
+    # ✅ 라벨을 비워서 “학생이 실제로 말한 내용을 그대로 적어 주세요.” 문구 제거
     answer = st.text_area(
-        "학생이 실제로 말한 내용을 그대로 적어 주세요.",
+        label="",
         key=f"answer_{card['id']}",
         height=100,
         placeholder="예) 여름에는 태양이 가까워져서 더워지고, 겨울에는 멀어져서 추워진 것 같아요.",
     )
 
-    # ✅ '피드백 보기' 옆에 '이전 단계로 돌아가기' 버튼 추가
-    col_fb, col_prev, col_res, col_next = st.columns([1, 1, 1, 1])
+    # ✅ 버튼 순서: 이전단계 → 피드백 → 추가자료 → 다음단계 / 간격 동일
+    col_prev, col_fb, col_res, col_next = st.columns([1, 1, 1, 1])
 
-    with col_fb:
-        show_feedback = st.button("피드백 보기", key=f"fb_btn_{card['id']}")
     with col_prev:
         prev_step = st.button("이전 단계로 돌아가기", key=f"prev_btn_{card['id']}")
+    with col_fb:
+        show_feedback = st.button("피드백 보기", key=f"fb_btn_{card['id']}")
     with col_res:
         show_resources = st.button("추가 자료 보기", key=f"res_btn_{card['id']}")
     with col_next:
@@ -521,15 +547,15 @@ with tab_lesson:
                     st.caption(res["description"])
 
                 if url:
-                    # ✅ 유튜브 링크면 embed 형태로 정규화 후 st.video로 재생
+                    # ✅ 유튜브면 무조건 정규화해서 영상 재생
                     if is_youtube_url(url):
                         st.video(normalize_youtube_url(url))
                     else:
-                        # 기존 타입 기반 처리
-                        if res.get("type") == "image":
-                            st.image(url, use_container_width=True)
-                        elif res.get("type") == "video":
+                        # ✅ resource type이 video면 st.video로 재생
+                        if res.get("type") == "video":
                             st.video(url)
+                        elif res.get("type") == "image":
+                            st.image(url, use_container_width=True)
                         else:
                             st.markdown(f"[자료 열기]({url})")
                 else:
