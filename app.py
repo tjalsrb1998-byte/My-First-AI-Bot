@@ -2,6 +2,7 @@ import streamlit as st
 from typing import Dict, List
 import json
 from pathlib import Path
+import re
 
 # -----------------------------
 # config.json 저장/불러오기
@@ -26,6 +27,51 @@ def save_resource_urls(resource_urls: Dict) -> None:
     payload = {"resource_urls": resource_urls}
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+# -----------------------------
+# 유튜브 링크 정규화(Shorts/공유 링크 대응)
+# -----------------------------
+def normalize_youtube_url(url: str) -> str:
+    """
+    Streamlit st.video에서 잘 재생되도록 유튜브 URL을 embed 형태로 변환합니다.
+    - https://www.youtube.com/shorts/VIDEO_ID
+    - https://youtu.be/VIDEO_ID
+    - https://www.youtube.com/watch?v=VIDEO_ID
+    등을 모두 지원
+    """
+    if not url:
+        return url
+
+    u = url.strip()
+
+    # youtu.be/<id>
+    m = re.search(r"youtu\.be/([A-Za-z0-9_-]{6,})", u)
+    if m:
+        vid = m.group(1)
+        return f"https://www.youtube.com/embed/{vid}"
+
+    # youtube.com/shorts/<id>
+    m = re.search(r"youtube\.com/shorts/([A-Za-z0-9_-]{6,})", u)
+    if m:
+        vid = m.group(1)
+        return f"https://www.youtube.com/embed/{vid}"
+
+    # youtube.com/watch?v=<id>
+    m = re.search(r"youtube\.com/watch\?v=([A-Za-z0-9_-]{6,})", u)
+    if m:
+        vid = m.group(1)
+        return f"https://www.youtube.com/embed/{vid}"
+
+    # youtube.com/embed/<id> 는 그대로
+    return u
+
+
+def is_youtube_url(url: str) -> bool:
+    if not url:
+        return False
+    u = url.lower()
+    return ("youtube.com" in u) or ("youtu.be" in u)
 
 
 # -----------------------------
@@ -127,7 +173,7 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "reason_sunlight",
-            "stage": "생각해보기기",
+            "stage": "생각해보기",  # ✅ 오타 수정
             "label": "생각해보기: 햇빛이 더 강하게 느껴지는 까닭",
             "question": "왜 여름에는 햇빛이 더 강하게 느껴질까요?",
             "expected_answers": [
@@ -155,7 +201,7 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "reason_oblique",
-            "stage": "생각해보기기",
+            "stage": "생각해보기",  # ✅ 오타 수정
             "label": "생각해보기: 비스듬한 햇빛",
             "question": "햇빛이 비스듬히 들어오면 어떤 일이 생길까요?",
             "expected_answers": [
@@ -210,7 +256,7 @@ def get_default_cards() -> List[Dict]:
         },
         {
             "id": "elab_tilt",
-            "stage": "더 생각해보기기",
+            "stage": "더 생각해보기",  # ✅ 오타 수정
             "label": "더 생각해보기: 자전축 기울기 의미",
             "question": "‘지구의 자전축이 기울어져 있다’는 말은 어떤 뜻일까요?",
             "expected_answers": [
@@ -222,7 +268,7 @@ def get_default_cards() -> List[Dict]:
                 {
                     "id": "tilt_demo",
                     "title": "자전축 기울기 모형",
-                    "type": "image",  # ✅ mp4면 video가 맞습니다.
+                    "type": "image",
                     "default_url": "https://lh3.googleusercontent.com/proxy/nclZ50T2eiYfpsAxGXmzSUULp13EOThsLQNUpHF7Ar-SlrHFeg3QcXngPHuRUUsQScX5R8LcdEgZahim96CakSngDtHqqPU",
                     "description": "지구본을 기울여서 돌리는 간단한 실험 영상을 보여 주세요.",
                 }
@@ -238,7 +284,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "summary_sentence",
             "stage": "정리",
-            "label": "정리리: 한 문장으로 계절 설명",
+            "label": "정리: 한 문장으로 계절 설명",  # ✅ 오타 수정
             "question": "계절이 생기는 까닭을 한 문장으로 말해 볼까요?",
             "expected_answers": [
                 "지구의 자전축이 기울어진 채로 태양 주위를 공전하기 때문에 계절이 생겨요.",
@@ -248,10 +294,10 @@ def get_default_cards() -> List[Dict]:
             "resources": [
                 {
                     "id": "summary_card",
-                    "title": "계절 개념 총정리 영상상",
+                    "title": "계절 개념 총정리 영상",
                     "type": "video",
                     "default_url": "https://www.youtube.com/shorts/WOEU2LEl5ug?feature=share",
-                    "description": "수업 마지막에 함께 읽을 수 있는 계절 개념 요약 카드입니다.",
+                    "description": "수업 마지막에 함께 볼 수 있는 계절 개념 요약 영상입니다.",
                 }
             ],
             "teacher_notes": {
@@ -350,7 +396,6 @@ if "cards" not in st.session_state:
     st.session_state.cards = get_default_cards()
 
 if "resource_urls" not in st.session_state:
-    # card_id -> resource_id -> url
     st.session_state.resource_urls = load_resource_urls()
 
 if "selected_card_index" not in st.session_state:
@@ -393,7 +438,6 @@ with st.sidebar:
     st.subheader("📎 자료 링크 설정")
     st.caption("학교에서 사용 가능한 이미지/영상 URL로 바꾸어 사용하실 수 있습니다.")
 
-    # 카드별 자료 URL 입력
     for res in current_card.get("resources", []):
         current_url = get_resource_url(current_card["id"], res)
         new_url = st.text_input(
@@ -446,9 +490,13 @@ with tab_lesson:
         placeholder="예) 여름에는 태양이 가까워져서 더워지고, 겨울에는 멀어져서 추워진 것 같아요.",
     )
 
-    col_fb, col_res, col_next = st.columns([1, 1, 1])
+    # ✅ '피드백 보기' 옆에 '이전 단계로 돌아가기' 버튼 추가
+    col_fb, col_prev, col_res, col_next = st.columns([1, 1, 1, 1])
+
     with col_fb:
         show_feedback = st.button("피드백 보기", key=f"fb_btn_{card['id']}")
+    with col_prev:
+        prev_step = st.button("이전 단계로 돌아가기", key=f"prev_btn_{card['id']}")
     with col_res:
         show_resources = st.button("추가 자료 보기", key=f"res_btn_{card['id']}")
     with col_next:
@@ -473,15 +521,24 @@ with tab_lesson:
                     st.caption(res["description"])
 
                 if url:
-                    if res["type"] == "image":
-                        st.image(url, use_container_width=True)
-                    elif res["type"] == "video":
-                        st.video(url)
+                    # ✅ 유튜브 링크면 embed 형태로 정규화 후 st.video로 재생
+                    if is_youtube_url(url):
+                        st.video(normalize_youtube_url(url))
                     else:
-                        st.markdown(f"[자료 열기]({url})")
+                        # 기존 타입 기반 처리
+                        if res.get("type") == "image":
+                            st.image(url, use_container_width=True)
+                        elif res.get("type") == "video":
+                            st.video(url)
+                        else:
+                            st.markdown(f"[자료 열기]({url})")
                 else:
                     st.info("URL이 비어 있습니다. 사이드바에서 주소를 입력해 주세요.")
                 st.markdown("---")
+
+    if prev_step:
+        st.session_state.selected_card_index = (current_index - 1) % len(cards)
+        st.rerun()
 
     if next_step:
         st.session_state.selected_card_index = (current_index + 1) % len(cards)
