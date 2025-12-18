@@ -317,8 +317,8 @@ def get_default_cards() -> List[Dict]:
                 {
                     "id": "summary_card",
                     "title": "계절 개념 총정리 영상",
-                    "type": "video",
-                    "default_url": "https://www.youtube.com/shorts/WOEU2LEl5ug?feature=share",
+                    "type": "image",
+                    "default_url": "https://www.home-learn.co.kr/common/image.do?imgPath=newsroom&imgName=CK20230202093400748.png&imgGubun=D",
                     "description": "수업 마지막에 함께 볼 수 있는 계절 개념 요약 영상입니다.",
                 }
             ],
