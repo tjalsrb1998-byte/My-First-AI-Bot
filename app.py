@@ -67,7 +67,7 @@ def get_default_cards() -> List[Dict]:
                     "id": "shadow_compare",
                     "title": "여름/겨울 그림자 길이 비교 사진",
                     "type": "image",
-                    "default_url": "https://example.com/shadow-length-summer-winter.png",
+                    "default_url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNZU4uiSOMiiRvWfPsNhQoPCLbDg2PR-8NQg&s",
                     "description": "같은 시간에 찍은 여름과 겨울의 그림자 길이를 비교한 사진입니다.",
                 }
             ],
@@ -95,7 +95,7 @@ def get_default_cards() -> List[Dict]:
                     "id": "daylength_chart",
                     "title": "계절에 따른 낮 길이 변화 그래프",
                     "type": "image",
-                    "default_url": "https://example.com/daylength-season-chart.png",
+                    "default_url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTHNbhrKiUFY1Q82K_M1_SBajnuuaS-tRaN1A&s",
                     "description": "계절에 따라 낮 시간이 어떻게 길어졌다가 짧아지는지 보여 주는 그래프입니다.",
                 }
             ],
@@ -123,7 +123,7 @@ def get_default_cards() -> List[Dict]:
                     "id": "angle_energy",
                     "title": "수직/비스듬한 햇빛과 에너지 분포 그림",
                     "type": "image",
-                    "default_url": "https://example.com/sunlight-angle-comparison.png",
+                    "default_url": "https://mblogthumb-phinf.pstatic.net/20121024_208/msy879_1351057881359nbj8s_JPEG/%C0%A7%B5%B5%BA%B0_%C5%C2%BE%E7%BA%B9%BB%E7%BF%A1%B3%CA%C1%F6.jpg?type=w420",
                     "description": "같은 양의 햇빛이 수직으로 들어올 때와 비스듬히 들어올 때, 단위 면적에 도달하는 에너지 차이를 보여 주는 그림입니다.",
                 }
             ],
@@ -150,8 +150,8 @@ def get_default_cards() -> List[Dict]:
                 {
                     "id": "flashlight_demo",
                     "title": "손전등 비스듬히 비추기 실험",
-                    "type": "video",
-                    "default_url": "https://example.com/flashlight-angle-demo.mp4",
+                    "type": "image",
+                    "default_url": "https://lh4.googleusercontent.com/proxy/0JRhbqvUmpAXFYGL4CaiZROSyq7vI6N19jJ6I1gjzlxhgseUzl2VxsRSzb37d-Aq3e6W8MChZXWQZe296aPksZIeCV0Vp2a4yj_w2w",
                     "description": "손전등을 수직/비스듬히 비출 때 빛이 퍼지는 모습을 비교하는 실험 영상입니다.",
                 }
             ],
@@ -178,7 +178,7 @@ def get_default_cards() -> List[Dict]:
                     "id": "orbit_shape",
                     "title": "지구 공전 궤도와 거리 변화 그림",
                     "type": "image",
-                    "default_url": "https://example.com/earth-orbit-distance.png",
+                    "default_url": "https://flexible.img.hani.co.kr/flexible/normal/800/453/imgdb/original/2025/0104/20250104500223.jpg",
                     "description": "지구가 태양을 타원 궤도로 돌지만, 거리 차이는 계절을 설명하기엔 크지 않다는 점을 보여 주는 그림입니다.",
                 }
             ],
@@ -204,7 +204,7 @@ def get_default_cards() -> List[Dict]:
                 {
                     "id": "tilt_demo",
                     "title": "자전축 기울기 모형 영상",
-                    "type": "video",
+                    "type": "image",
                     "default_url": "https://example.com/earth-tilt-demo.mp4",
                     "description": "지구본을 기울여서 돌리는 간단한 실험 영상을 보여 주세요.",
                 }
