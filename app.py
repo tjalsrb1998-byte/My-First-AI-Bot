@@ -3,7 +3,6 @@ from typing import Dict, List
 import json
 from pathlib import Path
 import re
-from urllib.parse import urlparse, parse_qs
 
 # -----------------------------
 # config.json 저장/불러오기
@@ -31,62 +30,48 @@ def save_resource_urls(resource_urls: Dict) -> None:
 
 
 # -----------------------------
-# 유튜브 링크 정규화(Shorts/공유 링크/모바일 링크 대응)
+# 유튜브 링크 정규화 (Streamlit st.video 호환 우선)
+# - embed URL 대신 watch URL을 사용 (st.video가 더 안정적으로 동작)
 # -----------------------------
-def extract_youtube_video_id(url: str) -> str:
-    """유튜브 URL에서 video_id를 최대한 robust하게 추출합니다."""
-    if not url:
-        return ""
-
-    u = url.strip()
-
-    # 1) youtu.be/<id>
-    m = re.search(r"youtu\.be/([A-Za-z0-9_-]{6,})", u)
-    if m:
-        return m.group(1)
-
-    # 2) youtube.com/shorts/<id>
-    m = re.search(r"(?:youtube\.com|m\.youtube\.com)/shorts/([A-Za-z0-9_-]{6,})", u)
-    if m:
-        return m.group(1)
-
-    # 3) youtube.com/embed/<id>
-    m = re.search(r"(?:youtube\.com|m\.youtube\.com)/embed/([A-Za-z0-9_-]{6,})", u)
-    if m:
-        return m.group(1)
-
-    # 4) youtube.com/watch?v=<id> (querystring)
-    try:
-        parsed = urlparse(u)
-        qs = parse_qs(parsed.query)
-        if "v" in qs and qs["v"]:
-            return qs["v"][0]
-    except Exception:
-        pass
-
-    # 5) 혹시나 watch?v=가 문자열에 포함된 경우(비정상 URL 대비)
-    m = re.search(r"v=([A-Za-z0-9_-]{6,})", u)
-    if m:
-        return m.group(1)
-
-    return ""
-
-
 def normalize_youtube_url(url: str) -> str:
     """
-    Streamlit st.video에서 잘 재생되도록 유튜브 URL을 정규화합니다.
-    - st.video는 보통 watch URL도 잘 되지만,
-      shorts/공유링크/모바일 링크가 꼬이면 실패하는 경우가 있어 id 기반으로 정규화합니다.
+    Streamlit st.video에서 잘 재생되도록 유튜브 URL을 watch 형태로 정규화합니다.
+    지원:
+    - https://www.youtube.com/shorts/VIDEO_ID
+    - https://youtu.be/VIDEO_ID
+    - https://www.youtube.com/watch?v=VIDEO_ID
+    - 공유 파라미터(?feature=share 등) 제거
     """
     if not url:
         return url
 
-    vid = extract_youtube_video_id(url)
-    if not vid:
-        return url.strip()
+    u = url.strip()
 
-    # watch 형태로 정규화 (embed보다 watch가 st.video에서 더 안정적인 경우가 많습니다)
-    return f"https://www.youtube.com/watch?v={vid}"
+    # youtu.be/<id>
+    m = re.search(r"youtu\.be/([A-Za-z0-9_-]{6,})", u)
+    if m:
+        vid = m.group(1)
+        return f"https://www.youtube.com/watch?v={vid}"
+
+    # youtube.com/shorts/<id>
+    m = re.search(r"youtube\.com/shorts/([A-Za-z0-9_-]{6,})", u)
+    if m:
+        vid = m.group(1)
+        return f"https://www.youtube.com/watch?v={vid}"
+
+    # youtube.com/watch?v=<id>
+    m = re.search(r"youtube\.com/watch\?v=([A-Za-z0-9_-]{6,})", u)
+    if m:
+        vid = m.group(1)
+        return f"https://www.youtube.com/watch?v={vid}"
+
+    # youtube.com/embed/<id>  -> watch로 변환 (선택)
+    m = re.search(r"youtube\.com/embed/([A-Za-z0-9_-]{6,})", u)
+    if m:
+        vid = m.group(1)
+        return f"https://www.youtube.com/watch?v={vid}"
+
+    return u
 
 
 def is_youtube_url(url: str) -> bool:
@@ -289,9 +274,10 @@ def get_default_cards() -> List[Dict]:
             "resources": [
                 {
                     "id": "tilt_demo",
-                    "title": "자전축 기울기 모형",
-                    "type": "image",
-                    "default_url": "https://lh3.googleusercontent.com/proxy/nclZ50T2eiYfpsAxGXmzSUULp13EOThsLQNUpHF7Ar-SlrHFeg3QcXngPHuRUUsQScX5R8LcdEgZahim96CakSngDtHqqPU",
+                    "title": "자전축 기울기 모형 영상",
+                    "type": "video",  # ✅ '영상'이면 video 권장
+                    # ⚠️ proxy 류 URL은 자주 깨집니다. 가능하면 유튜브/공개 mp4 링크로 교체하세요.
+                    "default_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
                     "description": "지구본을 기울여서 돌리는 간단한 실험 영상을 보여 주세요.",
                 }
             ],
@@ -317,8 +303,8 @@ def get_default_cards() -> List[Dict]:
                 {
                     "id": "summary_card",
                     "title": "계절 개념 총정리 영상",
-                    "type": "image",
-                    "default_url": "https://www.home-learn.co.kr/common/image.do?imgPath=newsroom&imgName=CK20230202093400748.png&imgGubun=D",
+                    "type": "video",
+                    "default_url": "https://www.youtube.com/shorts/WOEU2LEl5ug?feature=share",
                     "description": "수업 마지막에 함께 볼 수 있는 계절 개념 요약 영상입니다.",
                 }
             ],
@@ -423,6 +409,12 @@ if "resource_urls" not in st.session_state:
 if "selected_card_index" not in st.session_state:
     st.session_state.selected_card_index = 0
 
+# 버튼 눌렀을 때 상태 유지용
+if "show_feedback" not in st.session_state:
+    st.session_state.show_feedback = False
+if "show_resources" not in st.session_state:
+    st.session_state.show_resources = False
+
 
 def get_cards() -> List[Dict]:
     return st.session_state.cards
@@ -438,6 +430,35 @@ def set_resource_url(card_id: str, res_id: str, url: str) -> None:
     card_urls[res_id] = url
 
 
+def render_resource(res: Dict, url: str) -> None:
+    """리소스 타입을 우선으로 안전하게 렌더링합니다."""
+    rtype = (res.get("type") or "").lower()
+
+    # 항상 링크도 함께 제공(차단/만료 URL 원인 파악용)
+    if url:
+        st.caption(f"링크: {url}")
+
+    if not url:
+        st.info("URL이 비어 있습니다. 사이드바에서 주소를 입력해 주세요.")
+        return
+
+    # video 우선 처리
+    if rtype == "video":
+        if is_youtube_url(url):
+            st.video(normalize_youtube_url(url))
+        else:
+            st.video(url)
+        return
+
+    # image 처리
+    if rtype == "image":
+        st.image(url, use_container_width=True)
+        return
+
+    # 기타
+    st.markdown(f"[자료 열기]({url})")
+
+
 # -----------------------------
 # 레이아웃: 사이드바
 # -----------------------------
@@ -445,14 +466,12 @@ with st.sidebar:
     st.header("⚙️ 수업 설정")
 
     cards = get_cards()
-
-    # ✅ stage/label이 정확히 보이도록 표시 문자열을 명확히 구성
-    display_labels = [f"[{c.get('stage','')}] {c.get('label','')}" for c in cards]
+    labels = [f"[{c['stage']}] {c['label']}" for c in cards]
 
     selected_index = st.selectbox(
         "사용할 발문 카드를 선택하세요.",
-        options=list(range(len(display_labels))),
-        format_func=lambda i: display_labels[i],
+        options=list(range(len(labels))),
+        format_func=lambda i: labels[i],
         index=st.session_state.selected_card_index,
     )
     st.session_state.selected_card_index = selected_index
@@ -474,11 +493,11 @@ with st.sidebar:
     st.markdown("---")
     col_a, col_b = st.columns(2)
     with col_a:
-        if st.button("💾 자료 링크 저장"):
+        if st.button("💾 자료 링크 저장", use_container_width=True):
             save_resource_urls(st.session_state.resource_urls)
             st.success("저장되었습니다! (config.json)")
     with col_b:
-        if st.button("🧹 초기화"):
+        if st.button("🧹 초기화", use_container_width=True):
             st.session_state.resource_urls = {}
             save_resource_urls(st.session_state.resource_urls)
             st.warning("초기화되었습니다. 기본 URL로 다시 시작합니다.")
@@ -507,33 +526,53 @@ with tab_lesson:
     st.markdown(f"**{card['question']}**")
 
     st.markdown("##### 학생 답 입력")
-
-    # ✅ 라벨을 비워서 “학생이 실제로 말한 내용을 그대로 적어 주세요.” 문구 제거
+    # ✅ 문구 숨김: label="" + label_visibility="collapsed"
     answer = st.text_area(
         label="",
         key=f"answer_{card['id']}",
         height=100,
         placeholder="예) 여름에는 태양이 가까워져서 더워지고, 겨울에는 멀어져서 추워진 것 같아요.",
+        label_visibility="collapsed",
     )
 
-    # ✅ 버튼 순서: 이전단계 → 피드백 → 추가자료 → 다음단계 / 간격 동일
-    col_prev, col_fb, col_res, col_next = st.columns([1, 1, 1, 1])
+    # ✅ 버튼: 동일 폭/간격 + 원하는 순서
+    col_prev, col_fb, col_res, col_next = st.columns(4)
 
     with col_prev:
-        prev_step = st.button("이전 단계로 돌아가기", key=f"prev_btn_{card['id']}")
+        prev_clicked = st.button("이전 단계로 돌아가기", key=f"prev_btn_{card['id']}", use_container_width=True)
     with col_fb:
-        show_feedback = st.button("피드백 보기", key=f"fb_btn_{card['id']}")
+        fb_clicked = st.button("피드백 보기", key=f"fb_btn_{card['id']}", use_container_width=True)
     with col_res:
-        show_resources = st.button("추가 자료 보기", key=f"res_btn_{card['id']}")
+        res_clicked = st.button("추가 자료 보기", key=f"res_btn_{card['id']}", use_container_width=True)
     with col_next:
-        next_step = st.button("다음 단계로 넘어가기", key=f"next_btn_{card['id']}")
+        next_clicked = st.button("다음 단계로 넘어가기", key=f"next_btn_{card['id']}", use_container_width=True)
 
-    if show_feedback:
+    # 클릭 상태 반영(토글)
+    if fb_clicked:
+        st.session_state.show_feedback = True
+        st.session_state.show_resources = False
+    if res_clicked:
+        st.session_state.show_resources = True
+        st.session_state.show_feedback = False
+
+    if prev_clicked:
+        st.session_state.selected_card_index = (current_index - 1) % len(cards)
+        st.session_state.show_feedback = False
+        st.session_state.show_resources = False
+        st.rerun()
+
+    if next_clicked:
+        st.session_state.selected_card_index = (current_index + 1) % len(cards)
+        st.session_state.show_feedback = False
+        st.session_state.show_resources = False
+        st.rerun()
+
+    if st.session_state.show_feedback:
         st.markdown("---")
         st.subheader("💬 규칙 기반 피드백")
         st.write(build_feedback(answer, card))
 
-    if show_resources:
+    if st.session_state.show_resources:
         st.markdown("---")
         st.subheader("📚 추가 자료")
         resources = card.get("resources", [])
@@ -542,33 +581,11 @@ with tab_lesson:
         else:
             for res in resources:
                 url = get_resource_url(card["id"], res)
-                st.markdown(f"**{res['title']}**")
+                st.markdown(f"**{res.get('title', '자료')}**")
                 if res.get("description"):
                     st.caption(res["description"])
-
-                if url:
-                    # ✅ 유튜브면 무조건 정규화해서 영상 재생
-                    if is_youtube_url(url):
-                        st.video(normalize_youtube_url(url))
-                    else:
-                        # ✅ resource type이 video면 st.video로 재생
-                        if res.get("type") == "video":
-                            st.video(url)
-                        elif res.get("type") == "image":
-                            st.image(url, use_container_width=True)
-                        else:
-                            st.markdown(f"[자료 열기]({url})")
-                else:
-                    st.info("URL이 비어 있습니다. 사이드바에서 주소를 입력해 주세요.")
+                render_resource(res, url)
                 st.markdown("---")
-
-    if prev_step:
-        st.session_state.selected_card_index = (current_index - 1) % len(cards)
-        st.rerun()
-
-    if next_step:
-        st.session_state.selected_card_index = (current_index + 1) % len(cards)
-        st.rerun()
 
 
 # -----------------------------
