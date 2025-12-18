@@ -274,11 +274,11 @@ def get_default_cards() -> List[Dict]:
             "resources": [
                 {
                     "id": "tilt_demo",
-                    "title": "자전축 기울기 모형 영상",
-                    "type": "video",  # ✅ '영상'이면 video 권장
+                    "title": "자전축 기울기 모형",
+                    "type": "image",  # ✅ '영상'이면 video 권장
                     # ⚠️ proxy 류 URL은 자주 깨집니다. 가능하면 유튜브/공개 mp4 링크로 교체하세요.
-                    "default_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                    "description": "지구본을 기울여서 돌리는 간단한 실험 영상을 보여 주세요.",
+                    "default_url": "https://lh3.googleusercontent.com/proxy/nclZ50T2eiYfpsAxGXmzSUULp13EOThsLQNUpHF7Ar-SlrHFeg3QcXngPHuRUUsQScX5R8LcdEgZahim96CakSngDtHqqPU",
+                    "description": "자전축 기울기 모형을 보여주는 이미지입니다.",
                 }
             ],
             "teacher_notes": {
@@ -303,9 +303,9 @@ def get_default_cards() -> List[Dict]:
                 {
                     "id": "summary_card",
                     "title": "계절 개념 총정리 영상",
-                    "type": "video",
-                    "default_url": "https://www.youtube.com/shorts/WOEU2LEl5ug?feature=share",
-                    "description": "수업 마지막에 함께 볼 수 있는 계절 개념 요약 영상입니다.",
+                    "type": "image",
+                    "default_url": "https://www.home-learn.co.kr/common/image.do?imgPath=newsroom&imgName=CK20230202093400748.png&imgGubun=D",
+                    "description": "수업 최종 정리용 계절 개념 요약 이미지입니다.",
                 }
             ],
             "teacher_notes": {
