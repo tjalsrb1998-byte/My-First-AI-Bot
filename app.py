@@ -16,7 +16,7 @@ def load_resource_urls() -> Dict:
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            return data.get("resource_urls", {})
+            return data.get("resource_urls", {}) or {}
         except Exception:
             return {}
     return {}
@@ -29,14 +29,21 @@ def save_resource_urls(resource_urls: Dict) -> None:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
 
-def delete_config_file() -> bool:
-    """A안: config.json 파일 자체를 삭제(완전 초기화)"""
-    try:
-        if CONFIG_PATH.exists():
-            CONFIG_PATH.unlink()
+# -----------------------------
+# URL 유틸
+# -----------------------------
+def looks_like_placeholder(url: str) -> bool:
+    """예시 링크/placeholder를 감지합니다."""
+    if not url:
         return True
-    except Exception:
+    u = url.strip().lower()
+    return ("example.com" in u) or (u in {"", "http://", "https://"})
+
+
+def is_http_url(url: str) -> bool:
+    if not url:
         return False
+    return bool(re.match(r"^https?://", url.strip(), flags=re.IGNORECASE))
 
 
 # -----------------------------
@@ -55,37 +62,46 @@ def normalize_youtube_url(url: str) -> str:
 
     u = url.strip()
 
-    # youtu.be/<id>
     m = re.search(r"youtu\.be/([A-Za-z0-9_-]{6,})", u)
     if m:
         vid = m.group(1)
         return f"https://www.youtube.com/embed/{vid}"
 
-    # youtube.com/shorts/<id>
     m = re.search(r"youtube\.com/shorts/([A-Za-z0-9_-]{6,})", u)
     if m:
         vid = m.group(1)
         return f"https://www.youtube.com/embed/{vid}"
 
-    # youtube.com/watch?v=<id>
     m = re.search(r"youtube\.com/watch\?v=([A-Za-z0-9_-]{6,})", u)
     if m:
         vid = m.group(1)
         return f"https://www.youtube.com/embed/{vid}"
 
     # 이미 embed면 그대로
-    m = re.search(r"youtube\.com/embed/([A-Za-z0-9_-]{6,})", u)
-    if m:
-        return u
-
     return u
 
 
 def is_youtube_url(url: str) -> bool:
     if not url:
         return False
-    u = url.lower().strip()
+    u = url.lower()
     return ("youtube.com" in u) or ("youtu.be" in u)
+
+
+def sanitize_url(saved_url: str, default_url: str) -> str:
+    """
+    - config.json에 placeholder(example.com)나 비정상 URL이 저장되어 있으면 기본값으로 복구
+    - 정상 URL이면 그대로 사용
+    """
+    # 저장된 값이 없거나 placeholder면 기본으로
+    if looks_like_placeholder(saved_url):
+        return default_url or ""
+
+    # http(s) 아니면 기본으로
+    if not is_http_url(saved_url):
+        return default_url or ""
+
+    return saved_url.strip()
 
 
 # -----------------------------
@@ -97,7 +113,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "obs_sun_appearance",
             "stage": "생각해보기",
-            "label": "생각해보기: 계절 변화의 까닭",
+            "label": "계절 변화의 까닭",
             "question": "계절의 변화가 생기는 까닭은 무엇일까요?",
             "expected_answers": [
                 "여름에는 태양이 더 높이 떠 있고, 겨울에는 낮게 떠요.",
@@ -132,7 +148,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "obs_shadow_length",
             "stage": "관찰",
-            "label": "관찰: 그림자 길이",
+            "label": "그림자 길이",
             "question": "여름과 겨울에 같은 시간에 서 있으면, 그림자 길이는 어떻게 달라질까요?",
             "expected_answers": [
                 "여름에는 그림자가 짧고, 겨울에는 그림자가 길어요.",
@@ -160,7 +176,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "obs_day_length",
             "stage": "관찰",
-            "label": "관찰: 낮의 길이",
+            "label": "낮의 길이",
             "question": "낮의 길이는 계절에 따라 어떻게 달라질까요?",
             "expected_answers": [
                 "여름에는 낮이 길고 밤이 짧아요.",
@@ -188,7 +204,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "reason_sunlight",
             "stage": "생각해보기",
-            "label": "생각해보기: 햇빛이 더 강하게 느껴지는 까닭",
+            "label": "햇빛이 더 강하게 느껴지는 까닭",
             "question": "왜 여름에는 햇빛이 더 강하게 느껴질까요?",
             "expected_answers": [
                 "여름에는 태양이 높이 떠 있어서 햇빛이 더 세게 내려와요.",
@@ -216,7 +232,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "reason_oblique",
             "stage": "생각해보기",
-            "label": "생각해보기: 비스듬한 햇빛",
+            "label": "비스듬한 햇빛",
             "question": "햇빛이 비스듬히 들어오면 어떤 일이 생길까요?",
             "expected_answers": [
                 "빛이 넓게 퍼져서 한 곳에 도달하는 양이 줄어들 것 같아요.",
@@ -244,7 +260,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "misconception_distance",
             "stage": "더 생각해보기",
-            "label": "더 생각해보기: 거리 오개념 확인",
+            "label": "거리 오개념 확인",
             "question": "계절은 지구가 태양에 가까워져서 또는 멀어져서 생긴다고 말해도 될까요?",
             "expected_answers": [
                 "가까워서 덥고, 멀어서 추운 거라고 생각했어요.",
@@ -271,7 +287,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "elab_tilt",
             "stage": "더 생각해보기",
-            "label": "더 생각해보기: 자전축 기울기 의미",
+            "label": "자전축 기울기 의미",
             "question": "‘지구의 자전축이 기울어져 있다’는 말은 어떤 뜻일까요?",
             "expected_answers": [
                 "지구가 세워져서 도는 게 아니라 약간 기울어진 채로 돌고 있어요.",
@@ -281,10 +297,10 @@ def get_default_cards() -> List[Dict]:
             "resources": [
                 {
                     "id": "tilt_demo",
-                    "title": "자전축 기울기 모형 영상(유튜브 링크 권장)",
+                    "title": "자전축 기울기 모형 영상(유튜브)",
                     "type": "video",
                     "default_url": "https://www.youtube.com/shorts/WOEU2LEl5ug?feature=share",
-                    "description": "지구본을 기울여서 돌리는 간단한 실험 영상(유튜브 링크 권장)입니다.",
+                    "description": "자전축이 기울어진 지구본을 활용한 간단한 설명 영상입니다.",
                 }
             ],
             "teacher_notes": {
@@ -298,7 +314,7 @@ def get_default_cards() -> List[Dict]:
         {
             "id": "summary_sentence",
             "stage": "정리",
-            "label": "정리: 한 문장으로 계절 설명",
+            "label": "한 문장으로 계절 설명",
             "question": "계절이 생기는 까닭을 한 문장으로 말해 볼까요?",
             "expected_answers": [
                 "지구의 자전축이 기울어진 채로 태양 주위를 공전하기 때문에 계절이 생겨요.",
@@ -308,7 +324,7 @@ def get_default_cards() -> List[Dict]:
             "resources": [
                 {
                     "id": "summary_card",
-                    "title": "계절 개념 총정리 이미지",
+                    "title": "계절 개념 한 장 정리 카드(이미지)",
                     "type": "image",
                     "default_url": "https://www.home-learn.co.kr/common/image.do?imgPath=newsroom&imgName=CK20230202093400748.png&imgGubun=D",
                     "description": "수업 최종 정리용 계절 개념 요약 이미지입니다.",
@@ -355,7 +371,6 @@ def classify_answer(answer: str) -> str:
 def build_feedback(answer: str, card: Dict) -> str:
     """
     규칙 기반으로 피드백 문단을 생성합니다.
-    형식: 결론 1문장 + 보완 2~3문장 + 확인 질문 1개
     """
     category = classify_answer(answer)
 
@@ -367,16 +382,16 @@ def build_feedback(answer: str, card: Dict) -> str:
     lines: List[str] = [head]
 
     if category == "distance":
-        lines.append("태양과 지구 사이의 거리를 떠올린 것은 아주 자연스러운 생각이에요. 멀어지면 추워지고 가까워지면 더워질 것 같다고 느끼기 쉽지요.")
+        lines.append("태양과 지구 사이의 거리를 떠올린 것은 아주 자연스러운 생각이에요.")
         lines.append("하지만 실제로는 지구가 1년 동안 태양을 도는 동안 **거리 차이는 그리 크지 않아서**, 여름과 겨울처럼 큰 온도 차이를 만들 만큼의 이유가 되지는 않습니다.")
-        lines.append("계절이 생기는 더 중요한 까닭은 **지구의 자전축이 기울어진 채로 태양 주위를 공전하면서**, 태양빛이 비추는 각도와 낮의 길이가 달라지기 때문이에요.")
-        lines.append("그렇다면 만약 거리가 계절의 주된 이유라면, 지구가 태양에서 가장 멀어질 때 우리나라에는 어떤 계절이 와야 할지 함께 다시 생각해 볼까요?")
+        lines.append("더 중요한 까닭은 **자전축이 기울어진 채로 공전**하면서 태양빛의 각도와 낮의 길이가 달라지기 때문이에요.")
+        lines.append("만약 거리가 계절의 주된 이유라면, 지구가 태양에서 가장 멀어질 때 우리나라에는 어떤 계절이 와야 할까요?")
 
     elif category == "tilt":
-        lines.append("자전축이 기울어져 있다는 말을 해 주신 것은 아주 중요한 핵심을 잘 짚은 거예요. 계절의 비밀에 거의 다가간 셈입니다.")
-        lines.append("지구의 자전축이 약 23.5도 기울어진 채로 **태양 주위를 공전**하기 때문에, 어떤 때에는 우리나라 쪽이 태양을 더 정면으로 바라보고, 어떤 때에는 더 비스듬히 바라보게 됩니다.")
-        lines.append("그래서 계절마다 태양빛이 비추는 각도와 낮의 길이가 달라지고, 그 결과로 여름과 겨울 같은 계절 차이가 나타나게 돼요.")
-        lines.append("지금 이야기한 자전축 기울기와 공전을 한 문장 안에 넣어서, “그래서 계절이 생긴다”까지 이어서 다시 설명해 볼 수 있을까요?")
+        lines.append("자전축이 기울어져 있다는 말을 해 주신 것은 아주 중요한 핵심을 잘 짚은 거예요.")
+        lines.append("자전축이 약 23.5도 기울어진 채로 **태양 주위를 공전**하기 때문에, 계절마다 햇빛이 들어오는 각도와 낮의 길이가 달라집니다.")
+        lines.append("그래서 여름과 겨울 같은 계절 차이가 나타나게 돼요.")
+        lines.append("‘자전축 기울기’와 ‘공전’을 넣어서 한 문장으로 다시 말해 볼 수 있을까요?")
 
     elif category == "angle":
         lines.append("햇빛이 **수직에 가깝게** 혹은 **비스듬히** 들어온다는 점을 떠올린 것은 과학적으로 매우 예리한 관찰이에요.")
@@ -386,19 +401,19 @@ def build_feedback(answer: str, card: Dict) -> str:
 
     elif category == "daylength":
         lines.append("낮의 길이와 밤의 길이를 떠올린 것은 계절을 이해하는 데 아주 중요한 관찰이에요.")
-        lines.append("지구의 자전축이 기울어진 채로 태양 주위를 공전하면서, 어떤 때에는 우리나라가 태양을 더 오래 바라보게 되어 **낮이 길어지고**, 어떤 때에는 덜 오래 바라보게 되어 **밤이 길어지게** 됩니다.")
-        lines.append("그래서 낮이 길어질수록 여름처럼 더 따뜻하게 느껴지고, 낮이 짧아질수록 겨울처럼 더 선선하게 느껴질 수 있어요.")
-        lines.append("방금 이야기한 ‘낮 길이 변화’를 자전축 기울기와 공전이라는 말까지 넣어서 한 문장으로 정리해 볼 수 있을까요?")
+        lines.append("자전축이 기울어진 채로 공전하면서, 어떤 때에는 우리나라가 태양을 더 오래 바라보게 되어 **낮이 길어지고**, 어떤 때에는 **밤이 길어지게** 됩니다.")
+        lines.append("낮이 길어질수록 더 따뜻하게, 낮이 짧아질수록 더 선선하게 느껴질 수 있어요.")
+        lines.append("‘낮 길이 변화’ + ‘자전축 기울기/공전’을 넣어서 한 문장으로 정리해 볼까요?")
 
     elif category == "other":
-        lines.append("지금 적어 주신 생각 속에도 분명 중요한 단서들이 숨어 있어요. 아직은 조금 막연하게 느껴질 수 있습니다.")
-        lines.append("조금 더 구체적으로, **태양의 높이**, **햇빛이 비추는 각도**, **낮과 밤의 길이** 중에서 무엇과 가장 관련이 있을지 하나를 골라서 다시 설명해 보면 좋아요.")
+        lines.append("지금 적어 주신 생각 속에도 중요한 단서가 있어요. 다만 아직은 조금 막연할 수 있습니다.")
+        lines.append("**태양의 높이**, **햇빛이 비추는 각도**, **낮과 밤의 길이** 중에서 무엇과 가장 관련이 있을지 하나를 골라서 다시 설명해 보면 좋아요.")
         lines.append("“어떤 계절에는 태양이 어떻게 보이고, 그래서 무엇이 달라진다”처럼 문장을 한 번 더 만들어 볼까요?")
 
     else:  # empty
-        lines.append("처음부터 완벽한 답을 쓰려고 하기보다, 떠오르는 단어 두세 개만 적어 보는 것도 좋은 시작입니다.")
+        lines.append("떠오르는 단어 두세 개만 적어 보는 것도 좋은 시작입니다.")
         lines.append("예를 들어 ‘태양빛의 각도’, ‘자전축 기울기’, ‘낮의 길이’처럼 계절과 관련이 있을 것 같은 말을 하나 골라 적어 보세요.")
-        lines.append("이 중에서 어떤 단어가 계절과 가장 깊은 관련이 있을지, 다음 차례에 말로 설명해 볼 수 있을까요?")
+        lines.append("이 중에서 어떤 단어가 계절과 가장 깊은 관련이 있을지 다음 차례에 말로 설명해 볼 수 있을까요?")
 
     return "\n\n".join(lines)
 
@@ -410,7 +425,6 @@ if "cards" not in st.session_state:
     st.session_state.cards = get_default_cards()
 
 if "resource_urls" not in st.session_state:
-    # card_id -> resource_id -> url
     st.session_state.resource_urls = load_resource_urls()
 
 if "selected_card_index" not in st.session_state:
@@ -422,24 +436,40 @@ def get_cards() -> List[Dict]:
 
 
 def get_resource_url(card_id: str, res: Dict) -> str:
-    """
-    저장된 URL이 있으면 그것을 우선 사용.
-    단, 저장값이 빈 문자열이면 default_url을 사용.
-    """
     card_urls = st.session_state.resource_urls.setdefault(card_id, {})
-    saved = card_urls.get(res["id"], None)
-
-    if saved is None:
-        return res.get("default_url", "") or ""
-    if isinstance(saved, str) and saved.strip() == "":
-        return res.get("default_url", "") or ""
-    return saved
+    saved = card_urls.get(res["id"], "")
+    default_url = res.get("default_url", "")
+    # 저장값이 placeholder/비정상이면 기본값으로 자동 복구
+    url = sanitize_url(saved, default_url)
+    return url
 
 
 def set_resource_url(card_id: str, res_id: str, url: str) -> None:
     card_urls = st.session_state.resource_urls.setdefault(card_id, {})
     card_urls[res_id] = url
 
+
+# -----------------------------
+# UI 스타일 (버튼 한 줄/줄바꿈 방지/동일 간격)
+# -----------------------------
+st.markdown(
+    """
+<style>
+/* 버튼 텍스트 줄바꿈 방지 + 동일 폭 느낌 */
+div.stButton > button {
+    width: 100%;
+    white-space: nowrap;
+    border-radius: 14px;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+}
+
+/* 탭/본문 여백 약간 정돈 */
+.block-container { padding-top: 2.0rem; }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 # -----------------------------
 # 레이아웃: 사이드바
@@ -475,27 +505,14 @@ with st.sidebar:
     st.markdown("---")
     col_a, col_b = st.columns(2)
     with col_a:
-        if st.button("💾 자료 링크 저장", use_container_width=True):
+        if st.button("💾 저장", use_container_width=True):
             save_resource_urls(st.session_state.resource_urls)
             st.success("저장되었습니다! (config.json)")
     with col_b:
-        if st.button("🧹 초기화(링크만)", use_container_width=True):
+        if st.button("🧹 초기화", use_container_width=True):
             st.session_state.resource_urls = {}
             save_resource_urls(st.session_state.resource_urls)
             st.warning("초기화되었습니다. 기본 URL로 다시 시작합니다.")
-
-    st.markdown("---")
-    st.subheader("🗑️ A안: 완전 초기화")
-    st.caption("config.json 파일 자체를 삭제합니다. (예시 링크가 계속 뜨는 문제를 근본 해결)")
-
-    if st.button("🗑️ config.json 삭제(완전 초기화)", use_container_width=True):
-        ok = delete_config_file()
-        st.session_state.resource_urls = {}
-        if ok:
-            st.success("config.json을 삭제했습니다. 기본 URL로 다시 로드됩니다.")
-        else:
-            st.error("config.json 삭제에 실패했습니다. 파일이 사용 중인지 확인해 주세요.")
-        st.rerun()
 
     st.caption("※ 저장 후 새로고침해도 유지됩니다.")
 
@@ -521,52 +538,28 @@ with tab_lesson:
     st.markdown(f"**{card['question']}**")
 
     st.markdown("##### 학생 답 입력")
+    # ✅ 라벨 문구 제거(요청하신 문장 완전 삭제)
     answer = st.text_area(
-        label="",  # ✅ 문구 제거
-        label_visibility="collapsed",  # ✅ 문구 숨김
+        label="",
         key=f"answer_{card['id']}",
-        height=100,
+        height=110,
         placeholder="예) 여름에는 태양이 가까워져서 더워지고, 겨울에는 멀어져서 추워진 것 같아요.",
     )
 
-    # ✅ 버튼: 이전 -> 피드백 -> 추가자료 -> 다음 / 간격 동일 / 폭 동일
-    col_prev, col_fb, col_res, col_next = st.columns(4, gap="medium")
+    # ✅ 버튼 4개: 이전 → 피드백 → 추가자료 → 다음 (동일 간격/한 줄)
+    col_prev, col_fb, col_res, col_next = st.columns(4, gap="small")
     with col_prev:
-        prev_step = st.button(
-            "이전 단계로 돌아가기",
-            key=f"prev_btn_{card['id']}",
-            use_container_width=True,
-        )
+        prev_step = st.button("이전 단계로 돌아가기", key=f"prev_btn_{card['id']}", use_container_width=True)
     with col_fb:
-        show_feedback = st.button(
-            "피드백 보기",
-            key=f"fb_btn_{card['id']}",
-            use_container_width=True,
-        )
+        show_feedback = st.button("피드백 보기", key=f"fb_btn_{card['id']}", use_container_width=True)
     with col_res:
-        show_resources = st.button(
-            "추가 자료 보기",
-            key=f"res_btn_{card['id']}",
-            use_container_width=True,
-        )
+        show_resources = st.button("추가 자료 보기", key=f"res_btn_{card['id']}", use_container_width=True)
     with col_next:
-        next_step = st.button(
-            "다음 단계로 넘어가기",
-            key=f"next_btn_{card['id']}",
-            use_container_width=True,
-        )
-
-    if prev_step:
-        st.session_state.selected_card_index = (current_index - 1) % len(cards)
-        st.rerun()
-
-    if next_step:
-        st.session_state.selected_card_index = (current_index + 1) % len(cards)
-        st.rerun()
+        next_step = st.button("다음 단계로 넘어가기", key=f"next_btn_{card['id']}", use_container_width=True)
 
     if show_feedback:
         st.markdown("---")
-        # ✅ 여기 문구만 변경
+        # ✅ 제목 변경
         st.subheader("🧑‍🏫 선생님이 도와줄게요!")
         st.write(build_feedback(answer, card))
 
@@ -578,33 +571,40 @@ with tab_lesson:
             st.info("이 카드에 등록된 자료가 아직 없습니다. 사이드바에서 URL을 추가해 보세요.")
         else:
             for res in resources:
-                url = get_resource_url(card["id"], res).strip()
-                st.markdown(f"**{res.get('title','(제목 없음)')}**")
+                url = get_resource_url(card["id"], res)
+
+                st.markdown(f"**{res['title']}**")
                 if res.get("description"):
                     st.caption(res["description"])
 
-                if not url:
-                    st.info("URL이 비어 있습니다. 사이드바에서 주소를 입력해 주세요.")
-                    st.markdown("---")
-                    continue
+                if url:
+                    # ✅ 항상 링크도 함께 보여줘서(차단/깨짐 대비)
+                    st.markdown(f"링크: {url}")
 
-                st.markdown(f"링크: {url}")
-
-                if is_youtube_url(url):
-                    st.video(normalize_youtube_url(url))
-                    st.markdown("---")
-                    continue
-
-                rtype = (res.get("type") or "").lower()
-
-                if rtype == "image":
-                    st.image(url, use_container_width=True)
-                elif rtype == "video":
-                    st.video(url)
+                    # ✅ 유튜브는 정규화해서 st.video
+                    if is_youtube_url(url):
+                        st.video(normalize_youtube_url(url))
+                    else:
+                        # 타입 기반 처리
+                        rtype = (res.get("type") or "").lower()
+                        if rtype == "image":
+                            st.image(url, use_container_width=True)
+                        elif rtype == "video":
+                            st.video(url)
+                        else:
+                            st.markdown(f"[자료 열기]({url})")
                 else:
-                    st.markdown(f"[자료 열기]({url})")
+                    st.info("URL이 비어 있습니다. 사이드바에서 주소를 입력해 주세요.")
 
                 st.markdown("---")
+
+    if prev_step:
+        st.session_state.selected_card_index = (current_index - 1) % len(cards)
+        st.rerun()
+
+    if next_step:
+        st.session_state.selected_card_index = (current_index + 1) % len(cards)
+        st.rerun()
 
 
 # -----------------------------
@@ -631,32 +631,3 @@ with tab_summary:
     st.checkbox("자전축 기울기와 공전이 계절과 어떻게 연결되는지 한 문장으로 말할 수 있다.", key="chk_tilt_orbit")
 
     st.markdown("---")
-
-st.markdown(
-    """
-    <style>
-    /* 버튼 전체 스타일 통일 */
-    div.stButton > button {
-        width: 100%;
-        height: 56px;
-        white-space: nowrap;      /* 줄바꿈 방지 */
-        font-size: 16px;
-        font-weight: 500;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-col_prev, col_fb, col_res, col_next = st.columns(4)
-
-with col_prev:
-    prev_step = st.button("이전 단계로 돌아가기", key=f"prev_{card['id']}")
-
-with col_fb:
-    show_feedback = st.button("피드백 보기", key=f"fb_{card['id']}")
-
-with col_res:
-    show_resources = st.button("추가 자료 보기", key=f"res_{card['id']}")
-
-with col_next:
-    next_step = st.button("다음 단계로 넘어가기", key=f"next_{card['id']}")
