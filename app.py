@@ -7,6 +7,8 @@ import re
 # -----------------------------
 # config.json 저장/불러오기
 # -----------------------------
+CONFIG_PATH = Path("config.json")
+
 
 def load_resource_urls() -> Dict:
     """config.json에서 자료 URL 설정을 불러옵니다."""
@@ -629,3 +631,32 @@ with tab_summary:
     st.checkbox("자전축 기울기와 공전이 계절과 어떻게 연결되는지 한 문장으로 말할 수 있다.", key="chk_tilt_orbit")
 
     st.markdown("---")
+
+st.markdown(
+    """
+    <style>
+    /* 버튼 전체 스타일 통일 */
+    div.stButton > button {
+        width: 100%;
+        height: 56px;
+        white-space: nowrap;      /* 줄바꿈 방지 */
+        font-size: 16px;
+        font-weight: 500;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+col_prev, col_fb, col_res, col_next = st.columns(4)
+
+with col_prev:
+    prev_step = st.button("이전 단계로 돌아가기", key=f"prev_{card['id']}")
+
+with col_fb:
+    show_feedback = st.button("피드백 보기", key=f"fb_{card['id']}")
+
+with col_res:
+    show_resources = st.button("추가 자료 보기", key=f"res_{card['id']}")
+
+with col_next:
+    next_step = st.button("다음 단계로 넘어가기", key=f"next_{card['id']}")
